@@ -4,17 +4,7 @@
 
 #include "olcPixelGameEngine.h"
 
-template<class _Ty>
-void clamp( _Ty & val, _Ty min, _Ty max )
-{
-  if( min > max )
-  {
-    _Ty temp = min;
-    min      = max;
-    max      = temp;
-  }
-  val = ( val < min ) ? min : ( val > max ) ? max : val;
-}
+enum class mapTiles { None, Wall, Road, Road_LEdge, Road_REdge, Road_TEdge, Road_BEdge };
 
 class Game : public olc::PixelGameEngine
 {
@@ -32,14 +22,31 @@ private:
 
   std::unique_ptr<olc::Sprite> sprCar;
   std::unique_ptr<olc::Decal>  decCar;
+  std::unique_ptr<olc::Sprite> sprTiles;
+  std::unique_ptr<olc::Decal>  decTiles;
+  std::unique_ptr<mapTiles[]>  map;
+  olc::vi2d                    vBlockSize = { 10, 10 };
 
 public:
   bool OnUserCreate() override
   {
-    // Load Fragment Sprite
-    sprCar = std::make_unique<olc::Sprite>( "./gfx/car.png" );
+    map = std::make_unique<mapTiles[]>( ScreenWidth() * ScreenHeight()/10 );
+    for( int y = 0; y < ScreenHeight()/10; y++ )
+    {
+      for( int x = 0; x < ScreenWidth()/10; x++ )
+      {
+        if( x == 0 || y == 0 || x == ScreenWidth()/10 - 1 || y == ScreenHeight()/10 - 1 )
+          map[cordToIndex( x, y )] = mapTiles::Wall;
+        else
+          map[cordToIndex( x, y )] = mapTiles::None;
+      }
+    }
 
-    // Create decal of fragment
+    // Load Sprites
+    sprCar   = std::make_unique<olc::Sprite>( "./gfx/car.png" );
+    sprTiles = std::make_unique<olc::Sprite>( "./gfx/mapTiles.png" );
+
+    // Create decals
     decCar = std::make_unique<olc::Decal>( sprCar.get() );
 
     return true;
@@ -66,11 +73,30 @@ public:
 
     // Keep car on screen
     if( carPos.x < 0 ) carPos.x = 0;
-    if( carPos.x > ScreenWidth() ) carPos.x = ScreenWidth();
+    if( carPos.x > ScreenWidth() ) carPos.x = (float)ScreenWidth();
     if( carPos.y < 0 ) carPos.y = 0;
-    if( carPos.y > ScreenHeight() ) carPos.y = ScreenHeight();
+    if( carPos.y > ScreenHeight() ) carPos.y = (float)ScreenHeight();
 
     Clear( olc::VERY_DARK_GREY );
+
+    // Draw Map
+    for( int y = 0; y < ScreenHeight() / 10; y++ )
+    {
+      for( int x = 0; x < ScreenWidth() / 10; x++ )
+      {
+        switch( map[cordToIndex( x, y )] )
+        {
+          case mapTiles::None: break;
+          case mapTiles::Wall:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 0, 0 ) * vBlockSize,
+                               vBlockSize );
+            break;
+        }
+      }
+    }
+
     // Draw Car
     DrawRotatedDecal( carPos, decCar.get(), fCarAngle, { 5.0f, 10.0f } );
 
@@ -82,6 +108,9 @@ public:
 
     return true;
   }
+
+  int cordToIndex( olc::vi2d pos ) { return cordToIndex( pos.x, pos.y ); }
+  int cordToIndex( int x, int y ) { return y * ScreenWidth() + x; }
 };
 
 int main()
