@@ -1,10 +1,23 @@
 #define OLC_PGE_APPLICATION
 
+#include <fstream>
 #include <string>
 
 #include "olcPixelGameEngine.h"
 
-enum class mapTiles { None, Wall, Road, Road_LEdge, Road_REdge, Road_TEdge, Road_BEdge };
+enum class mapTiles {
+  None,
+  Wall,
+  Road,
+  Road_L_Edge,
+  Road_R_Edge,
+  Road_T_Edge,
+  Road_B_Edge,
+  Road_TL_Corner,
+  Road_TR_Corner,
+  Road_BL_Corner,
+  Road_BR_Corner
+};
 
 class Game : public olc::PixelGameEngine
 {
@@ -17,7 +30,7 @@ private:
   const float FRICTION   = 25.f;
   const float PI         = 3.14159f;
 
-  olc::vf2d carPos    = { 200, 200 };
+  olc::vf2d carPos    = { 130, 200 };
   float     carVel    = 0.0f;
   float     fCarAngle = 0.0f;
 
@@ -31,13 +44,37 @@ private:
 public:
   bool OnUserCreate() override
   {
-    map = std::make_unique<mapTiles[]>( ScreenWidth() * ScreenHeight() / 10 );
-    for( int y = 0; y < ScreenHeight() / 10; y++ )
+    map = std::make_unique<mapTiles[]>( ScreenWidth() * ScreenHeight() / vBlockSize.x );
+    for( int y = 0; y < ScreenHeight() / vBlockSize.y; y++ )
     {
-      for( int x = 0; x < ScreenWidth() / 10; x++ )
+      for( int x = 0; x < ScreenWidth() / vBlockSize.x; x++ )
       {
-        if( x == 0 || y == 0 || x == ScreenWidth() / 10 - 1 || y == ScreenHeight() / 10 - 1 )
+        if( x == 0 || y == 0 || x == ScreenWidth() / vBlockSize.x - 1 || y == ScreenHeight() / vBlockSize.y - 1 )
           map[cordToIndex( x, y )] = mapTiles::Wall;
+        else if( x >= 10 && x <= 70 && y >= 5 && y <= 9 )
+          map[cordToIndex( x, y )] = mapTiles::Road;
+        else if( x >= 10 && x <= 70 && y >= 30 && y <= 34 )
+          map[cordToIndex( x, y )] = mapTiles::Road;
+        else if( x >= 10 && x <= 15 && y >= 5 && y <= 34 )
+          map[cordToIndex( x, y )] = mapTiles::Road;
+        else if( x >= 65 && x <= 70 && y >= 5 && y <= 34 )
+          map[cordToIndex( x, y )] = mapTiles::Road;
+        else if( x >= 10 && x <= 70 && ( y == 4 || y == 29 ) )
+          map[cordToIndex( x, y )] = mapTiles::Road_T_Edge;
+        else if( x >= 10 && x <= 70 && ( y == 10 || y == 35 ) )
+          map[cordToIndex( x, y )] = mapTiles::Road_B_Edge;
+        else if( ( x == 9 || x == 64 ) && y >= 5 && y <= 34 )
+          map[cordToIndex( x, y )] = mapTiles::Road_L_Edge;
+        else if( ( x == 16 || x == 71 ) && y >= 5 && y <= 34 )
+          map[cordToIndex( x, y )] = mapTiles::Road_R_Edge;
+        else if( ( x == 9 && y == 4 ) )
+          map[cordToIndex( x, y )] = mapTiles::Road_TL_Corner;
+        else if( ( x == 9 && y == 35 ) )
+          map[cordToIndex( x, y )] = mapTiles::Road_BL_Corner;
+        else if( ( x == 71 && y == 4 ) )
+          map[cordToIndex( x, y )] = mapTiles::Road_TR_Corner;
+        else if( ( x == 71 && y == 35 ) )
+          map[cordToIndex( x, y )] = mapTiles::Road_BR_Corner;
         else
           map[cordToIndex( x, y )] = mapTiles::None;
       }
@@ -86,17 +123,71 @@ public:
     Clear( olc::VERY_DARK_GREY );
 
     // Draw Map
-    for( int y = 0; y < ScreenHeight() / 10; y++ )
+    for( int y = 0; y < ScreenHeight() / vBlockSize.y; y++ )
     {
-      for( int x = 0; x < ScreenWidth() / 10; x++ )
+      for( int x = 0; x < ScreenWidth() / vBlockSize.x; x++ )
       {
         switch( map[cordToIndex( x, y )] )
         {
-          case mapTiles::None: break;
+          case mapTiles::None: FillRect( olc::vi2d( x, y ) * vBlockSize, vBlockSize, olc::DARK_GREEN ); break;
           case mapTiles::Wall:
             DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
                                sprTiles.get(),
                                olc::vi2d( 0, 0 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 0, 1 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road_T_Edge:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 3, 0 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road_B_Edge:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 3, 1 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road_L_Edge:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 4, 1 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road_R_Edge:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 4, 0 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road_TL_Corner:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 1, 0 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road_TR_Corner:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 2, 0 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road_BL_Corner:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 1, 1 ) * vBlockSize,
+                               vBlockSize );
+            break;
+          case mapTiles::Road_BR_Corner:
+            DrawPartialSprite( olc::vi2d( x, y ) * vBlockSize,
+                               sprTiles.get(),
+                               olc::vi2d( 2, 1 ) * vBlockSize,
                                vBlockSize );
             break;
         }
@@ -106,10 +197,10 @@ public:
     // Draw Car
     DrawRotatedDecal( carPos, decCar.get(), fCarAngle, { 5.0f, 10.0f } );
 
-    DrawString( 0, 0, std::to_string( fCarAngle ) );
-    DrawString( 0, 8, std::to_string( carVel ) );
-    DrawString( 0,
-                16,
+    DrawString( 11, 11, std::to_string( fCarAngle ) );
+    DrawString( 11, 20, std::to_string( carVel ) );
+    DrawString( 11,
+                29,
                 std::to_string( sin( fCarAngle ) * carVel ) + " " + std::to_string( -cos( fCarAngle ) * carVel ) );
 
     return true;
