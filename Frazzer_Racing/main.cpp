@@ -13,7 +13,8 @@ public:
 
 private:
   const float ROT_RATE   = 2.0f;
-  const float ACCEL_RATE = 0.01f;
+  const float ACCEL_RATE = 50.f;
+  const float FRICTION   = 25.f;
   const float PI         = 3.14159f;
 
   olc::vf2d carPos    = { 200, 200 };
@@ -30,12 +31,12 @@ private:
 public:
   bool OnUserCreate() override
   {
-    map = std::make_unique<mapTiles[]>( ScreenWidth() * ScreenHeight()/10 );
-    for( int y = 0; y < ScreenHeight()/10; y++ )
+    map = std::make_unique<mapTiles[]>( ScreenWidth() * ScreenHeight() / 10 );
+    for( int y = 0; y < ScreenHeight() / 10; y++ )
     {
-      for( int x = 0; x < ScreenWidth()/10; x++ )
+      for( int x = 0; x < ScreenWidth() / 10; x++ )
       {
-        if( x == 0 || y == 0 || x == ScreenWidth()/10 - 1 || y == ScreenHeight()/10 - 1 )
+        if( x == 0 || y == 0 || x == ScreenWidth() / 10 - 1 || y == ScreenHeight() / 10 - 1 )
           map[cordToIndex( x, y )] = mapTiles::Wall;
         else
           map[cordToIndex( x, y )] = mapTiles::None;
@@ -57,8 +58,13 @@ public:
     // Get User input
     if( GetKey( olc::Key::A ).bHeld ) fCarAngle -= ROT_RATE * fElapsedTime;
     if( GetKey( olc::Key::D ).bHeld ) fCarAngle += ROT_RATE * fElapsedTime;
-    if( GetKey( olc::Key::W ).bHeld ) carVel += ACCEL_RATE;
-    if( GetKey( olc::Key::S ).bHeld ) carVel -= ACCEL_RATE;
+    if( GetKey( olc::Key::W ).bHeld ) carVel += ACCEL_RATE * fElapsedTime;
+    if( GetKey( olc::Key::S ).bHeld ) carVel -= ACCEL_RATE * fElapsedTime;
+
+    // Car friction
+    if( carVel > 0 ) carVel -= FRICTION * fElapsedTime;
+    else if( carVel < 0 )
+      carVel += FRICTION * fElapsedTime;
 
     // Update Car
     olc::vf2d vel = { sin( fCarAngle ) * carVel, -cos( fCarAngle ) * carVel };
@@ -116,6 +122,6 @@ public:
 int main()
 {
   Game demo;
-  if( demo.Construct( 400, 400, 2, 2 ) ) demo.Start();
+  if( demo.Construct( 800, 400, 2, 2 ) ) demo.Start();
   return 0;
 }
