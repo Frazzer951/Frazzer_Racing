@@ -114,11 +114,14 @@ public:
       fCarAngle = fCarAngle - 2 * PI;
     }
 
+    // Collision Check
+    checkWallColision();
+
     // Keep car on screen
-    if( carPos.x < 0 ) carPos.x = 0;
-    if( carPos.x > ScreenWidth() ) carPos.x = (float)ScreenWidth();
-    if( carPos.y < 0 ) carPos.y = 0;
-    if( carPos.y > ScreenHeight() ) carPos.y = (float)ScreenHeight();
+    // if( carPos.x < 0 ) carPos.x = 0;
+    // if( carPos.x > ScreenWidth() ) carPos.x = (float)ScreenWidth();
+    // if( carPos.y < 0 ) carPos.y = 0;
+    // if( carPos.y > ScreenHeight() ) carPos.y = (float)ScreenHeight();
 
     Clear( olc::VERY_DARK_GREY );
 
@@ -206,8 +209,59 @@ public:
     return true;
   }
 
-  int cordToIndex( olc::vi2d pos ) { return cordToIndex( pos.x, pos.y ); }
-  int cordToIndex( int x, int y ) { return y * ScreenWidth() + x; }
+  void checkWallColision()
+  {
+    olc::vi2d curTilePos = worldCordToTileCord( carPos );
+    bool      hasWall    = false;
+    for( int i = -1; i <= 1; i++ )
+    {
+      for( int j = -1; j <= 1; j++ )
+      {
+        if( inRange( { curTilePos.x + i, curTilePos.y + j } )
+            && map[cordToIndex( curTilePos.x + i, curTilePos.y + j )] == mapTiles::Wall )
+          hasWall = true;
+      }
+    }
+
+    if( !hasWall ) return;
+
+    // Find 4 cords for car
+    // Car is 10 x 20
+    // Car angle is fCarAngle
+    int W  = 10;
+    int H  = 20;
+    int Ox = W / 2;
+    int Oy = H / 2;
+
+    olc::vi2d cornerPosBR;
+    olc::vi2d cornerPosBL;
+    olc::vi2d cornerPosTR;
+    olc::vi2d cornerPosTL;
+
+    cornerPosBR.x = carPos.x + ( Ox * cos( fCarAngle ) ) - ( Oy * sin( fCarAngle ) );
+    cornerPosBR.y = carPos.y + ( Ox * sin( fCarAngle ) ) + ( Oy * cos( fCarAngle ) );
+
+    cornerPosBL.x = carPos.x + ( -Ox * cos( fCarAngle ) ) - ( Oy * sin( fCarAngle ) );
+    cornerPosBL.y = carPos.y + ( -Ox * sin( fCarAngle ) ) + ( Oy * cos( fCarAngle ) );
+
+    cornerPosTR.x = carPos.x + ( Ox * cos( fCarAngle ) ) - ( -Oy * sin( fCarAngle ) );
+    cornerPosTR.y = carPos.y + ( Ox * sin( fCarAngle ) ) + ( -Oy * cos( fCarAngle ) );
+
+    cornerPosTL.x = carPos.x + ( -Ox * cos( fCarAngle ) ) - ( -Oy * sin( fCarAngle ) );
+    cornerPosTL.y = carPos.y + ( -Ox * sin( fCarAngle ) ) + ( -Oy * cos( fCarAngle ) );
+
+    // Check if any are in a wall tile
+    // If in a wall tile stop movement along that direction
+  }
+
+  olc::vi2d worldCordToTileCord( olc::vi2d cord ) { return { cord.x / vBlockSize.x, cord.y / vBlockSize.y }; }
+  int       cordToIndex( olc::vi2d pos ) { return cordToIndex( pos.x, pos.y ); }
+  int       cordToIndex( int x, int y ) { return y * ScreenWidth() + x; }
+  bool      inRange( olc::vi2d cord )
+  {
+    return cord.x >= 0 && cord.x < ScreenWidth() / vBlockSize.x && cord.y >= 0
+           && cord.y < ScreenHeight() / vBlockSize.y;
+  }
 };
 
 int main()
