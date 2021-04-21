@@ -44,7 +44,7 @@ private:
 public:
   bool OnUserCreate() override
   {
-    map = std::make_unique<mapTiles[]>( ScreenWidth() * ScreenHeight() / vBlockSize.x );
+    map = std::make_unique<mapTiles[]>( ( ScreenWidth() / vBlockSize.x ) * ( ScreenHeight() / vBlockSize.y ) );
     for( int y = 0; y < ScreenHeight() / vBlockSize.y; y++ )
     {
       for( int x = 0; x < ScreenWidth() / vBlockSize.x; x++ )
@@ -114,14 +114,15 @@ public:
       fCarAngle = fCarAngle - 2 * PI;
     }
 
-    // Collision Check
-    checkWallColision();
+    // TODO: Collision Check
+    // checkWallCollision ();
 
     // Keep car on screen
-    // if( carPos.x < 0 ) carPos.x = 0;
-    // if( carPos.x > ScreenWidth() ) carPos.x = (float)ScreenWidth();
-    // if( carPos.y < 0 ) carPos.y = 0;
-    // if( carPos.y > ScreenHeight() ) carPos.y = (float)ScreenHeight();
+    if( carPos.x < vBlockSize.x )
+      carPos.x = vBlockSize.x;
+    if( carPos.x > ScreenWidth() - vBlockSize.x ) carPos.x = (float)ScreenWidth() - vBlockSize.x;
+    if( carPos.y < vBlockSize.y ) carPos.y = vBlockSize.y;
+    if( carPos.y > ScreenHeight() - vBlockSize.y ) carPos.y = (float)ScreenHeight() - vBlockSize.y;
 
     Clear( olc::VERY_DARK_GREY );
 
@@ -209,7 +210,7 @@ public:
     return true;
   }
 
-  void checkWallColision()
+  void checkWallCollision ()
   {
     olc::vi2d curTilePos = worldCordToTileCord( carPos );
     bool      hasWall    = false;
@@ -256,7 +257,7 @@ public:
 
   olc::vi2d worldCordToTileCord( olc::vi2d cord ) { return { cord.x / vBlockSize.x, cord.y / vBlockSize.y }; }
   int       cordToIndex( olc::vi2d pos ) { return cordToIndex( pos.x, pos.y ); }
-  int       cordToIndex( int x, int y ) { return y * ScreenWidth() + x; }
+  int       cordToIndex( int x, int y ) { return y * ( ScreenWidth() / vBlockSize.x ) + x; }
   bool      inRange( olc::vi2d cord )
   {
     return cord.x >= 0 && cord.x < ScreenWidth() / vBlockSize.x && cord.y >= 0
